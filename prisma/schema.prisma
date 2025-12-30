@@ -1,0 +1,179 @@
+// Inspire Global Access - Database Schema
+// Prisma schema for IGA consulting website
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ============ USERS ============
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  posts Post[]
+
+  @@map("users")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+}
+
+// ============ OPPORTUNITIES ============
+
+model Op {
+  id        String    @id @default(cuid())
+  title     String
+  slug      String    @unique
+  category  OpCat
+  location  String
+  partner   String
+  desc      String    @db.Text
+  reqs      String    @db.Text // JSON array as string
+  deadline  DateTime?
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([isActive])
+  @@map("ops")
+}
+
+enum OpCat {
+  EDUCATION
+  EMPLOYMENT
+  TRAVEL
+  TRADE
+}
+
+// ============ BOOKINGS ============
+
+model Booking {
+  id        String        @id @default(cuid())
+  name      String
+  email     String
+  phone     String
+  country   String
+  type      BookingType
+  date      DateTime
+  message   String?       @db.Text
+  status    BookingStatus @default(PENDING)
+  paymentId String?       @map("payment_id")
+  paidAt    DateTime?     @map("paid_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([type])
+  @@map("bookings")
+}
+
+enum BookingType {
+  EDUCATION
+  EMPLOYMENT
+  TRAVEL
+  TRADE
+  PARTNERSHIP
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// ============ INQUIRIES ============
+
+model Inquiry {
+  id        String      @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  country   String
+  subject   String?
+  message   String      @db.Text
+  type      InquiryType @default(GENERAL)
+  isRead    Boolean     @default(false) @map("is_read")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  @@index([isRead])
+  @@index([type])
+  @@map("inquiries")
+}
+
+enum InquiryType {
+  GENERAL
+  PARTNERSHIP
+}
+
+// ============ BLOG ============
+
+model Post {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  excerpt     String?   @db.Text
+  content     String    @db.LongText // Tiptap JSON or HTML
+  image       String? // Featured image URL
+  metaTitle   String?   @map("meta_title") // SEO title
+  metaDesc    String?   @map("meta_desc") @db.Text // SEO description
+  isPublished Boolean   @default(false) @map("is_published")
+  publishedAt DateTime? @map("published_at")
+  authorId    String    @map("author_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  author User      @relation(fields: [authorId], references: [id])
+  tags   PostTag[]
+
+  @@index([isPublished])
+  @@index([slug])
+  @@map("posts")
+}
+
+model Tag {
+  id    String    @id @default(cuid())
+  name  String    @unique
+  slug  String    @unique
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+model PostTag {
+  postId String @map("post_id")
+  tagId  String @map("tag_id")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+// ============ UPLOADS ============
+
+model Upload {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  type      String
+  size      Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("uploads")
+}
